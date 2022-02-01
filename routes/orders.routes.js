@@ -5,7 +5,8 @@ const {
 	addProductToCart,
 	getUserCart,
 	updateProductCart,
-	purchaseOrder
+	purchaseOrder,
+	getAllOrdersFromUser
 } = require('../controllers/orders.controller');
 
 // Middlewares
@@ -27,6 +28,10 @@ router.post('/add-product-to-cart', addProductToCart);
 
 // do purshace cart
 router.post('/purshace-cart', purchaseOrder);
+
+// get all orders from a user
+router.post('/get-all-orders', getAllOrdersFromUser);
+
 
 // Update cart product quantity
 router.patch(

@@ -55,15 +55,16 @@ class Email {
 			text: htmlToText(html),
 		};
 
-		await transport.sendMail(mailOptions);
+		const e = await transport.sendMail(mailOptions);
 	}
 
 	async sendWelcome(username, email) {
 		await this.send('welcome', 'New account!', { username, email });
 	}
 
-	async sendOrder(products, totalPrice, name) {
 
+	async sendOrder(name, productsPurshased, totalPrice) {
+		await this.send('order', 'Your products are on the way!', { name, productsPurshased, totalPrice });
 	}
 }
 

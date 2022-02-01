@@ -10,6 +10,7 @@ const { catchAsync } = require('../utils/catchAsync');
 const { filterObj } = require('../utils/filterObj');
 const { AppError } = require('../utils/appError');
 const { formatUserCart } = require('../utils/queryFormat');
+const { Email } = require('../utils/email');
 
 exports.getUserCart = catchAsync(async (req, res, next) => {
 	const { currentUser } = req;
@@ -42,18 +43,26 @@ exports.getUserCart = catchAsync(async (req, res, next) => {
 	});
 });
 
+
+
+
+
+
+
 exports.addProductToCart = catchAsync(async (req, res, next) => {
 	const { product } = req.body;
 	const { currentUser } = req;
-	console.log('----------------------------------');
+
 
 	try {
 		const filteredObj = filterObj(product, 'id', 'quantity');
-		
+		//const filteredObj = product;
+
 		// Validate if quantity is less or equal to existing quantity
 		const productExists = await Product.findOne({
 			where: { id: filteredObj.id, status: 'active' },
 		});
+
 
 		if (!productExists || filteredObj.quantity > productExists.quantity) {
 			return next(
@@ -116,6 +125,7 @@ exports.addProductToCart = catchAsync(async (req, res, next) => {
 		}
 	
 		res.status(201).json({ status: 'success' });
+		
 	} catch (error) {
 		console.log('error ', error);
 	}
@@ -200,17 +210,20 @@ exports.updateProductCart = catchAsync(async (req, res, next) => {
 
 
 
+
 exports.purchaseOrder = catchAsync(async (req, res, next) => {
-	const { userId } = req.body;
+	const { userId, name, email } = req.body;
 
 
-		// 1st part:
+
+						// 1st part:
 		// Get user's cart and get the products of the cart
 		const cart = await Cart.findOne({
 			where: { userId, 
-			//	status: 'onGoing' 
+			status: 'onGoing' 
 			},
 		});
+
 
 		const productsInCart = await ProductInCart.findAll({
 		 	where: { cartId: cart.dataValues.id}
@@ -219,14 +232,13 @@ exports.purchaseOrder = catchAsync(async (req, res, next) => {
 		// Set Cart status to 'purchased'
 		await cart.update({status: 'purchased'});
 
-
 		// Create a new order
-		const d = new Date();
+		const currentDate = new Date().toISOString().slice(1,10);
 
 		const order = await Order.create({
 			userId,
 			totalPrice: cart.totalPrice,
-			date: d.getTime()
+			date: currentDate
 		});
 
 
@@ -246,27 +258,44 @@ exports.purchaseOrder = catchAsync(async (req, res, next) => {
 	}
 
 
-	productsInCart.map(async (product, indexProduct) => {
+	const productsPromises = productsInCart.map(async (product, indexProduct) => {
+
+
+		const product_Db = await Product.findOne({where: { id: product.productId}});
+
+		if(product_Db.dataValues.quantity <= 0)
+		{
+			return next(
+				new AppError(
+					`There is noo stock of this product`,
+					400
+				)
+			);
+		}
+
 
 		const productPurshased = await product.update({ status: 'purchased'});
 
-		const product_Db = await Product.findOne({where: { id: productPurshased.dataValues.productId}});
+		const newQuantity = product_Db.dataValues.quantity - productPurshased.dataValues.quantity;
 
-		const newQuantity = product_Db.dataValues.quantity - productPurshased.dataValues.quantity ;
+		productsPurshased[indexProduct].name = product_Db.name;
+
 
 		if(newQuantity < 0)
 		{
 			await product_Db.update({ quantity: 0, status: 'soldOut'});
 
+			const recalculatedPrice = product_Db.dataValues.quantity * product.price / productPurshased.dataValues.quantity;
+
 			await ProductInOrder.create({
 				orderId: order.id,
-				productId: product.id,
-				price: product.price,
+				productId: product.productId,
+				price: recalculatedPrice,
 				quantity: product_Db.quantity
 			});
 
 			// return the left items, not the ones the user requested
-			productsPurshased[indexProduct] = product_Db.quantity; 
+			productsPurshased[indexProduct].quantity = product_Db.quantity; 
 		}
 		else if(newQuantity === 0){
 			await product_Db.update({ quantity: newQuantity, status: 'soldOut'});
@@ -276,18 +305,66 @@ exports.purchaseOrder = catchAsync(async (req, res, next) => {
 
 			await ProductInOrder.create({
 				orderId: order.id,
-				productId: product.id,
+				productId: product.productId,
 				price: product.price,
 				quantity: product.quantity
 			});
 		}
 	}); // end map
 
+	await Promise.all(productsPromises);
 
+	let totalPrice = 0;
+	for(let i = 0; i < productsPurshased.length; i++)
+	{
+		totalPrice += +productsPurshased[i].price * +productsPurshased[i].quantity;
+	}
+
+
+
+	const emaiLInstance = new Email(email);
+	emaiLInstance.sendOrder(name, productsPurshased, totalPrice);
 
 		res.status(200).json({ 
 			status: 'success',
 			productsPurshased });
+
+
+	// 2nd part:
+	// Send email to the user that purchased the order
+	// The email must contain the total price and the list of products that it purchased
+
+
+});
+
+
+
+exports.getAllOrdersFromUser = catchAsync(async (req, res, next) => {
+	const { userId } = req.body;
+
+
+	try {
+		const orders = await Order.findAll({
+			where: { userId },
+		});
+
+		if(!orders)
+		{
+			return next(
+				new AppError(
+					`Error getting orders`,
+					400
+				)
+			);
+		}
+
+		res.status(200).json({ 
+			status: 'success',
+			orders });
+
+	} catch (error) {
+		console.log('error', error);
+	}
 
 	// 2nd part:
 	// Send email to the user that purchased the order

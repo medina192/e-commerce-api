@@ -1,0 +1,31 @@
+extends base
+
+block emailContent
+  p Hi #{name}
+  p You have completed the next purshase:
+
+
+  table.body(role='presentation' cellspacing='0' cellpadding='0' border='0')
+    tbody
+      tr
+        th Quantity
+        th Product Name
+        th Price
+      tr
+        each product in productsPurshased
+          td.align-center #{product.quantity}
+          td.align-center #{product.name}
+          td.align-center $#{product.price}
+
+  div.con-products-order
+    div.con-individual-item
+      p Quantity
+      p Product Name
+      p Price
+    div.con-individual-item
+      for product in productsPurshased
+        p.individual-cell #{product.quantity}
+        p.individual-cell #{product.name}
+        p.individual-cell $#{product.price}
+
+  p.individual-cell Total Price: $#{totalPrice}

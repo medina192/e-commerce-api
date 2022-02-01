@@ -17,6 +17,7 @@ const { globalErrorHandler } = require('./controllers/error.controller');
 
 // Utils
 const { AppError } = require('./utils/appError');
+const { Email } = require('./utils/email');
 
 // Init app
 const app = express();
@@ -50,6 +51,20 @@ app.use('/api/v1/users', userRouter);
 app.use('/api/v1/products', productsRouter);
 app.use('/api/v1/orders', ordersRouter);
 app.use('/', viewsRouter);
+
+app.post('/lala', async(req, res) => {
+	
+	try {
+		const email = new Email('ja.diazmedina@ugto.mx');
+		email.sendWelcome('welcome, email@gmail.com');
+	} catch (error) {
+		console.log('error email', error);
+	}
+
+	res.json({
+		hi: 'jdjss'
+	})
+})
 
 app.use('*', (req, res, next) => {
 	next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));

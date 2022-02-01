@@ -185,8 +185,9 @@ style.
   hr {
     border: 0;
     border-bottom: 1px solid #f6f6f6;
-    margin: 20px 0; 
+    margin: 20px 0;
   }
+
   @media only screen and (max-width: 620px) {
     table[class=body] h1 {
       font-size: 28px !important;
@@ -255,4 +256,35 @@ style.
       background-color: #2e864b !important;
       border-color: #2e864b !important; 
     } 
+  }
+
+
+  .con-products-order{
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .con-individual-item:nth-child(odd){
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    background-color: #837456;
+    padding: .5rem;
+  }
+
+    .con-individual-item:nth-child(even){
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    background-color: #037259;
+    padding: .5rem;
+  }
+
+  .individual-cell{
+    font-size: 1.8rem
   }
